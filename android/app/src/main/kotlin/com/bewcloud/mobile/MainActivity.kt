@@ -1,4 +1,4 @@
-package com.example.bewcloud_mobile
+package com.bewcloud.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 
