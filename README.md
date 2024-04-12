@@ -10,16 +10,16 @@ If you're looking for the desktop sync app, it's at [`bewcloud-desktop`](https:/
 
 ## Install
 
-Download the appropriate binary [from the releases page](https://github.com/bewcloud/bewcloud-mobile/releases) for your mobile device and run it!
+Download the appropriate binary [from the releases page](https://github.com/bewcloud/bewcloud-mobile/releases) for your mobile device and run it.
+
+Alternatively, you can [build from source](#build-from-source)!
 
 > [!CAUTION]
 > I _know_ the key used to encrypt the config passwords in the automatic release builds, and anyone who cares to reverse-engineer the app binaries can too, so you should [build your own client](#build-from-source) instead, with your own key.
 
-Alternatively, you can [build from source](#build-from-source)!
-
 ## Development
 
-You need to have [Flutter](https://docs.flutter.dev/get-started/install) installed.
+You need to have [Flutter](https://docs.flutter.dev/get-started/install) installed and setup, with `flutter doctor` passing.
 
 Don't forget to set up your `.env` file based on `.env.sample`.
 
@@ -37,8 +37,9 @@ Don't forget to check the [development](#development) section above first!
 > If you're releasing a new version, update it in `pubspec.yaml` first.
 
 ```sh
-make build # builds the app binaries!
-flutter install # installs the binary directly on a USB-connected device
+make build/android # builds the APK binary for Android
+make build/ios # builds the IPA binary for iOS
+make install # installs the binary directly on a connected device
 ```
 
 ### Generate icons
@@ -52,10 +53,10 @@ dart run flutter_launcher_icons
 
 ## TODOs:
 
-- [ ] Setup iOS
 - [ ] Add auto-upload
 - [ ] Add Notes view
 - [ ] Add Photos view
+- [ ] Setup iOS GitHub actions (need to setup so much stuff)?
 - [ ] Publish in stores (Play Store, F-Droid, Apple Store)?
 - [ ] Allow renaming and moving files
 - [ ] Allow deleting, renaming, and moving directories

@@ -32,7 +32,7 @@ jobs:
         run: echo 'PASSWORD_SECRET_KEY="${{ secrets.PASSWORD_SECRET_KEY }}"' > .env
 
       - name: Build
-        run: make build
+        run: make build/android
       
       - name: Archive x86 APK
         uses: actions/upload-artifact@v4

@@ -10,6 +10,14 @@ format:
 test:
 	flutter test
 
-.PHONY: build
-build:
+.PHONY: build/android
+build/android:
 	flutter build apk --split-per-abi --release
+
+.PHONY: build/ios
+build/ios:
+	flutter build ios --release
+
+.PHONY: install
+install:
+	flutter install
