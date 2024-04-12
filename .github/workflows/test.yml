@@ -1,0 +1,22 @@
+name: Run Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.19.5
+          cache: true
+      
+      - name: Setup .env
+        run: cp .env.sample .env
+
+      - name: Run tests
+        run: make test
