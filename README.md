@@ -10,10 +10,10 @@ If you're looking for the desktop sync app, it's at [`bewcloud-desktop`](https:/
 
 ## Install
 
-Download the appropriate binary [from the releases page](https://github.com/bewcloud/bewcloud-mobile/releases) for your OS and run it!
+Download the appropriate binary [from the releases page](https://github.com/bewcloud/bewcloud-mobile/releases) for your mobile device and run it!
 
 > [!CAUTION]
-> I _know_ the key used to encrypt the config passwords, and anyone who cares to reverse-engineer the app binaries will too, so you should [build your own client](#build-from-source) instead, with your own key.
+> I _know_ the key used to encrypt the config passwords in the automatic release builds, and anyone who cares to reverse-engineer the app binaries can too, so you should [build your own client](#build-from-source) instead, with your own key.
 
 Alternatively, you can [build from source](#build-from-source)!
 
@@ -24,9 +24,9 @@ You need to have [Flutter](https://docs.flutter.dev/get-started/install) install
 Don't forget to set up your `.env` file based on `.env.sample`.
 
 ```sh
-$ make start # runs the app
-$ make format # formats the code
-$ make test # runs tests
+make start # runs the app
+make format # formats the code
+make test # runs tests
 ```
 
 ## Build from source
@@ -37,7 +37,8 @@ Don't forget to check the [development](#development) section above first!
 > If you're releasing a new version, update it in `pubspec.yaml` first.
 
 ```sh
-$ make build # builds the app binaries!
+make build # builds the app binaries!
+flutter install # installs the binary directly on a USB-connected device
 ```
 
 ### Generate icons
