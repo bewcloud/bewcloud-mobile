@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// import 'types.dart';
 import 'files_page.dart';
 import 'settings_page.dart';
 

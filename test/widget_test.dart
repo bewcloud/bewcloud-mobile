@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bewcloud_mobile/main.dart';
+import 'package:bewcloud/main.dart';
 
 void main() {
   testWidgets('Basic app smoke test', (WidgetTester tester) async {

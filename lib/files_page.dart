@@ -299,7 +299,7 @@ class _FilesPageState extends State<FilesPage> {
       return ElevatedButton(
         style: const ButtonStyle(
             backgroundColor: MaterialStatePropertyAll(Colors.lightBlue),
-            foregroundColor: MaterialStatePropertyAll(Colors.white)),
+            foregroundColor: MaterialStatePropertyAll(Colors.black)),
         onPressed: () async {
           await _updateChosenAccountIndex(thisAccountIndex);
 
@@ -499,7 +499,7 @@ class _FilesPageState extends State<FilesPage> {
                                                   Colors.lightBlue),
                                           foregroundColor:
                                               MaterialStatePropertyAll(
-                                                  Colors.white)),
+                                                  Colors.black)),
                                       onPressed: () async {
                                         await _downloadFile(
                                             '${item.parentPath}${item.name}',
@@ -620,7 +620,7 @@ class _FilesPageState extends State<FilesPage> {
                                       backgroundColor: MaterialStatePropertyAll(
                                           Colors.lightBlue),
                                       foregroundColor: MaterialStatePropertyAll(
-                                          Colors.white)),
+                                          Colors.black)),
                                   onPressed: () async {
                                     await _uploadFile(context);
 
@@ -638,7 +638,7 @@ class _FilesPageState extends State<FilesPage> {
                                       backgroundColor: MaterialStatePropertyAll(
                                           Colors.lightBlue),
                                       foregroundColor: MaterialStatePropertyAll(
-                                          Colors.white)),
+                                          Colors.black)),
                                   onPressed: () async {
                                     await _createDirectory(context);
 
