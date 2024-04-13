@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:prompt_dialog/prompt_dialog.dart';
 
 import 'config.dart';
 import 'add_account_page.dart';
@@ -41,6 +42,19 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  Future<void> _updateAccountAutoUploadDirectory(
+      int indexToUpdate, String? directory) async {
+    var config = await ConfigStorage().readConfig();
+
+    config.accounts[indexToUpdate].autoUploadDestinationDirectory = directory;
+
+    await ConfigStorage().writeConfig(config);
+
+    setState(() {
+      accounts = config.accounts;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,6 +84,38 @@ class _SettingsPageState extends State<SettingsPage> {
                                         'Manage ${accounts[index].username}',
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold),
+                                      ),
+                                      const Spacer(),
+                                      ElevatedButton(
+                                        style: const ButtonStyle(
+                                            backgroundColor:
+                                                MaterialStatePropertyAll(
+                                                    Colors.lightBlue),
+                                            foregroundColor:
+                                                MaterialStatePropertyAll(
+                                                    Colors.black)),
+                                        onPressed: () async {
+                                          Navigator.pop(context);
+
+                                          // TODO: Ask for destination directory to auto-upload to with a nice, navigational UI instead
+
+                                          String currentDestinationPath = accounts[
+                                                      index]
+                                                  .autoUploadDestinationDirectory ??
+                                              '/Camera Uploads/';
+
+                                          String? destinationDirectoryPath =
+                                              await prompt(context,
+                                                  title: const Text(
+                                                      'Remote directory path (with leading and trailing slashes)'),
+                                                  initialValue:
+                                                      currentDestinationPath);
+
+                                          await _updateAccountAutoUploadDirectory(
+                                              index, destinationDirectoryPath);
+                                        },
+                                        child: const Text(
+                                            'Choose photos auto-upload directory'),
                                       ),
                                       const Spacer(),
                                       ElevatedButton(
@@ -146,7 +192,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           child: Padding(
                         padding: const EdgeInsets.all(14.0),
                         child: Text(
-                            '${accounts[index].username} - ${accounts[index].url}'),
+                          '${accounts[index].username} - ${accounts[index].url}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       )),
                     ),
                   ),

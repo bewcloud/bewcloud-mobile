@@ -285,7 +285,8 @@ class _FilesPageState extends State<FilesPage> {
       final thisAccountIndex = listAccountIndex++;
 
       List<Widget> children = [
-        Text('${account.username} - ${account.url}'),
+        Text('${account.username} - ${account.url}',
+            overflow: TextOverflow.ellipsis),
       ];
 
       if (thisAccountIndex == _chosenAccountIndex) {

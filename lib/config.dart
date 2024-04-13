@@ -9,15 +9,21 @@ class CloudAccount {
   String url;
   String username;
   String password;
+  String? autoUploadDestinationDirectory;
 
   CloudAccount(
-      {required this.url, required this.username, required this.password});
+      {required this.url,
+      required this.username,
+      required this.password,
+      this.autoUploadDestinationDirectory});
 
   factory CloudAccount.fromJson(Map<String, dynamic> json) {
     return CloudAccount(
       url: json['url'] as String,
       username: json['username'] as String,
       password: json['password'] as String,
+      autoUploadDestinationDirectory:
+          json['autoUploadDestinationDirectory'] as String?,
     );
   }
 
@@ -25,6 +31,7 @@ class CloudAccount {
         'url': url,
         'username': username,
         'password': password,
+        'autoUploadDestinationDirectory': autoUploadDestinationDirectory,
       };
 }
 
@@ -81,6 +88,7 @@ class ConfigStorage {
       final file = await _localFile;
 
       final contents = await file.readAsString();
+      debugPrint(contents);
 
       return parseConfig(contents);
     } catch (e) {

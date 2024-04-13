@@ -39,7 +39,7 @@ Don't forget to check the [development](#development) section above first!
 ```sh
 make build/android # builds the APK binary for Android
 make build/ios # builds the IPA binary for iOS
-make install # installs the binary directly on a connected device
+make install # installs the app directly on a connected device
 ```
 
 ### Generate icons
@@ -53,10 +53,10 @@ dart run flutter_launcher_icons
 
 ## TODOs:
 
-- [ ] Add auto-upload
 - [ ] Add Notes view
 - [ ] Add Photos view
-- [ ] Setup iOS GitHub actions (need to setup so much stuff)?
+- [ ] Improve setting up the auto-upload directory (file navigation, perhaps set it from the directory actions instead)
+- [ ] Setup iOS in GitHub actions (need to setup so much stuff)?
 - [ ] Publish in stores (Play Store, F-Droid, Apple Store)?
 - [ ] Allow renaming and moving files
 - [ ] Allow deleting, renaming, and moving directories
