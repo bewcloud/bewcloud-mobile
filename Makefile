@@ -16,7 +16,7 @@ build/android:
 
 .PHONY: build/ios
 build/ios:
-	flutter build ios --release
+	flutter build ios --release && flutter build ipa --export-method development
 
 .PHONY: install
 install:
