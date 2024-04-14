@@ -122,6 +122,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
                         },
                         controller: _urlTextFieldController,
                         decoration: const InputDecoration(
+                            alignLabelWithHint: true,
                             label: Text('WebDav URL'),
                             hintText: 'https://bewcloud.example.com/dav'),
                       ),
@@ -142,6 +143,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
                         },
                         controller: _usernameTextFieldController,
                         decoration: const InputDecoration(
+                            alignLabelWithHint: true,
                             label: Text('Email'),
                             hintText: 'jane.doe@example.com'),
                       ),
@@ -164,13 +166,14 @@ class _AddAccountPageState extends State<AddAccountPage> {
                         },
                         controller: _passwordTextFieldController,
                         decoration: const InputDecoration(
+                            alignLabelWithHint: true,
                             label: Text('WebDav Password'),
                             hintText: 'super-SECRET-passphrase'),
                       ),
                     ),
                   ),
                 ),
-                const Spacer(flex: 4),
+                const Spacer(flex: 2),
               ],
             ),
           ),

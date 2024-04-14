@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'files_page.dart';
@@ -11,14 +12,22 @@ import 'api.dart';
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    await dotenv.load(fileName: ".env");
+
     switch (task) {
       case Workmanager.iOSBackgroundTask:
       case "autoUploadPhotos":
       case "auto-upload-photos":
         final config = await ConfigStorage().readConfig();
 
-        final List<RecentFile> recentFiles =
-            config.accounts.isNotEmpty ? await getRecentFiles() : [];
+        final isThereAnyAutoUploadConfig = config.accounts
+            .any((account) => account.autoUploadDestinationDirectory != null);
+
+        if (!isThereAnyAutoUploadConfig) {
+          break;
+        }
+
+        final List<RecentFile> recentFiles = await getRecentFiles();
 
         for (var account in config.accounts) {
           final destinationDirectoryPath =
@@ -66,6 +75,8 @@ Future main() async {
     ),
     frequency: const Duration(hours: 2),
   );
+
+  await PhotoManager.clearFileCache();
 
   runApp(const MyApp());
 }

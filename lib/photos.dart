@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:photo_gallery/photo_gallery.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 class RecentFile {
   File file;
@@ -15,46 +15,37 @@ Future<List<RecentFile>> getRecentFiles() async {
   final now = DateTime.now();
   final lastWeek = now.subtract(const Duration(days: 7));
 
-  final List<Album> imageAlbums = await PhotoGallery.listAlbums(
-    mediumType: MediumType.image,
-    newest: true,
-    hideIfEmpty: true,
-  );
+  await PhotoManager.setIgnorePermissionCheck(true);
 
-  final List<Album> videoAlbums = await PhotoGallery.listAlbums(
-    mediumType: MediumType.video,
-    newest: true,
-    hideIfEmpty: true,
-  );
+  final List<AssetPathEntity> imageAlbumPaths =
+      await PhotoManager.getAssetPathList(
+          onlyAll: true, type: RequestType.image);
+  final List<AssetPathEntity> videoAlbumPaths =
+      await PhotoManager.getAssetPathList(
+          onlyAll: true, type: RequestType.video);
 
   List<RecentFile> recentFiles = [];
 
-  for (var imageAlbum in imageAlbums) {
-    final media = await imageAlbum.listMedia();
+  for (var imageAlbumPath in imageAlbumPaths) {
+    final List<AssetEntity> items =
+        await imageAlbumPath.getAssetListPaged(page: 0, size: 100);
 
-    for (var item in media.items) {
-      if (item.creationDate == null) {
-        continue;
-      }
-
-      if (item.creationDate!.isAfter(lastWeek)) {
+    for (var item in items) {
+      if (item.createDateTime.isAfter(lastWeek)) {
         recentFiles.add(RecentFile(
-            file: await item.getFile(), isPhoto: true, isVideo: false));
+            file: (await item.originFile)!, isPhoto: true, isVideo: false));
       }
     }
   }
 
-  for (var videoAlbum in videoAlbums) {
-    final media = await videoAlbum.listMedia();
+  for (var videoAlbumPath in videoAlbumPaths) {
+    final List<AssetEntity> items =
+        await videoAlbumPath.getAssetListPaged(page: 0, size: 100);
 
-    for (var item in media.items) {
-      if (item.creationDate == null) {
-        continue;
-      }
-
-      if (item.creationDate!.isAfter(lastWeek)) {
+    for (var item in items) {
+      if (item.createDateTime.isAfter(lastWeek)) {
         recentFiles.add(RecentFile(
-            file: await item.getFile(), isPhoto: false, isVideo: true));
+            file: (await item.originFile)!, isPhoto: false, isVideo: true));
       }
     }
   }

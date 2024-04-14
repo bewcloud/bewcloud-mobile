@@ -1,4 +1,4 @@
-# bewCloud Mobile Client
+# bewCloud Mobile
 
 [![](https://github.com/bewcloud/bewcloud-mobile/workflows/Run%20Tests/badge.svg)](https://github.com/bewcloud/bewcloud-mobile/actions?workflow=Run+Tests)
 
@@ -37,8 +37,8 @@ Don't forget to check the [development](#development) section above first!
 > If you're releasing a new version, update it in `pubspec.yaml` first.
 
 ```sh
-make build/android # builds the APK binary for Android
-make build/ios # builds the IPA binary for iOS
+make build/android # builds the APK for Android
+make build/ios # builds the IPA for iOS
 make install # installs the app directly on a connected device
 ```
 
@@ -55,7 +55,6 @@ dart run flutter_launcher_icons
 
 - [ ] Add Notes view
 - [ ] Add Photos view
-- [ ] Improve setting up the auto-upload directory (file navigation, perhaps set it from the directory actions instead)
 - [ ] Setup iOS in GitHub actions (need to setup so much stuff)?
 - [ ] Publish in stores (Play Store, F-Droid, Apple Store)?
 - [ ] Allow renaming and moving files

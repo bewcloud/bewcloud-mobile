@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:prompt_dialog/prompt_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -82,6 +83,19 @@ class _FilesPageState extends State<FilesPage> {
     });
 
     _loadDirectoriesAndFiles();
+
+    // Request gallery access if there's some auto upload directory
+    final isThereAnyAutoUploadConfig = config.accounts
+        .any((account) => account.autoUploadDestinationDirectory != null);
+
+    if (isThereAnyAutoUploadConfig) {
+      final PermissionState permissions =
+          await PhotoManager.requestPermissionExtend();
+
+      if (!permissions.isAuth && !permissions.hasAccess) {
+        await PhotoManager.openSetting();
+      }
+    }
   }
 
   Future<void> _loadDirectoriesAndFiles() async {
@@ -274,6 +288,23 @@ class _FilesPageState extends State<FilesPage> {
     _loadDirectoriesAndFiles();
   }
 
+  Future<void> _updateAccountAutoUploadDirectory(String? directory) async {
+    var config = await ConfigStorage().readConfig();
+
+    if (config.accounts[_chosenAccountIndex].autoUploadDestinationDirectory ==
+        directory) {
+      config.accounts[_chosenAccountIndex].autoUploadDestinationDirectory =
+          null;
+    } else {
+      config.accounts[_chosenAccountIndex].autoUploadDestinationDirectory =
+          directory;
+    }
+
+    await ConfigStorage().writeConfig(config);
+
+    _loadCloudAccounts();
+  }
+
   @override
   Widget build(BuildContext context) {
     CloudAccount? cloudAccount =
@@ -434,8 +465,20 @@ class _FilesPageState extends State<FilesPage> {
                 final item = listItems[index];
                 var itemIcon = const Icon(Icons.folder_outlined);
 
+                final itemFullPath = '${item.parentPath}${item.name}/';
+
                 if (item.name == '.Trash' && item.parentPath == '/') {
                   itemIcon = const Icon(Icons.delete_outline);
+                }
+
+                if (item.sizeInBytes == 0 &&
+                    itemFullPath ==
+                        cloudAccount!.autoUploadDestinationDirectory) {
+                  itemIcon = const Icon(Icons.folder_special);
+                }
+
+                if (item.sizeInBytes > 0) {
+                  itemIcon = const Icon(Icons.insert_drive_file_outlined);
                 }
 
                 var children = [
@@ -573,6 +616,69 @@ class _FilesPageState extends State<FilesPage> {
                                       onPressed: () {
                                         Navigator.pop(context);
                                       },
+                                      child: const Text('Cancel / Close'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        });
+                  },
+                  onLongPress: () async {
+                    if (item.sizeInBytes > 0) {
+                      return;
+                    }
+
+                    showModalBottomSheet<void>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return Container(
+                            height: 200,
+                            color: Colors.black45,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Manage ${item.name}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    const Spacer(),
+                                    ElevatedButton(
+                                      style: const ButtonStyle(
+                                          backgroundColor:
+                                              MaterialStatePropertyAll(
+                                                  Colors.lightBlue),
+                                          foregroundColor:
+                                              MaterialStatePropertyAll(
+                                                  Colors.black)),
+                                      onPressed: () async {
+                                        Navigator.pop(context);
+
+                                        await _updateAccountAutoUploadDirectory(
+                                            itemFullPath);
+                                      },
+                                      child: Text(cloudAccount!
+                                                  .autoUploadDestinationDirectory ==
+                                              itemFullPath
+                                          ? 'Stop auto-uploading to this directory'
+                                          : 'Choose this as the auto-upload directory'),
+                                    ),
+                                    const Spacer(flex: 1),
+                                    ElevatedButton(
+                                      style: const ButtonStyle(
+                                          backgroundColor:
+                                              MaterialStatePropertyAll(
+                                                  Colors.black),
+                                          foregroundColor:
+                                              MaterialStatePropertyAll(
+                                                  Colors.white)),
+                                      onPressed: () => Navigator.pop(context),
                                       child: const Text('Cancel / Close'),
                                     ),
                                   ],

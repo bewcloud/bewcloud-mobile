@@ -3,7 +3,7 @@ description: "bewCloud WebDav client"
 publish_to: 'none'
 
 
-version: 0.0.2+1
+version: 0.0.3+1
 
 environment:
   sdk: '>=3.3.3 <4.0.0'
@@ -24,7 +24,7 @@ dependencies:
   file_picker: ^8.0.0+1
   prompt_dialog: ^1.0.15
   workmanager: ^0.5.2
-  photo_gallery: ^2.2.1
+  photo_manager: ^3.0.0
 
 dev_dependencies:
   flutter_test:
