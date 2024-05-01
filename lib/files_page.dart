@@ -483,9 +483,11 @@ class _FilesPageState extends State<FilesPage> {
 
                 var children = [
                   itemIcon,
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12.0),
-                    child: Text(item.label),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12.0),
+                      child: Text(item.label, overflow: TextOverflow.ellipsis),
+                    ),
                   ),
                 ];
 
@@ -521,7 +523,7 @@ class _FilesPageState extends State<FilesPage> {
                         context: context,
                         builder: (BuildContext context) {
                           return Container(
-                            height: 200,
+                            height: 300,
                             color: Colors.black45,
                             child: Padding(
                               padding: const EdgeInsets.all(12.0),
@@ -535,6 +537,7 @@ class _FilesPageState extends State<FilesPage> {
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold),
                                     ),
+                                    Text(item.label),
                                     const Spacer(),
                                     ElevatedButton(
                                       style: const ButtonStyle(

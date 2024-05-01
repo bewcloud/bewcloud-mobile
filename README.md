@@ -50,12 +50,3 @@ If the icons change, just run the following to re-generate them:
 dart pub get
 dart run flutter_launcher_icons
 ```
-
-## TODOs:
-
-- [ ] Add Notes view
-- [ ] Add Photos view
-- [ ] Setup iOS in GitHub actions (need to setup so much stuff)?
-- [ ] Publish in stores (Play Store, F-Droid, Apple Store)?
-- [ ] Allow renaming and moving files
-- [ ] Allow deleting, renaming, and moving directories
