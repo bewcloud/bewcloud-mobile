@@ -28,8 +28,15 @@ jobs:
           flutter-version: 3.19.5
           cache: true
       
+      - name: Generate password secret key
+        id: generate-key
+        run: |
+          KEY=$(openssl rand -base64 32 | tr -d '\n' | cut -c1-32)
+          echo "::add-mask::$KEY"
+          echo "PASSWORD_SECRET_KEY=$KEY" >> $GITHUB_ENV
+      
       - name: Setup .env
-        run: echo 'PASSWORD_SECRET_KEY="${{ secrets.PASSWORD_SECRET_KEY }}"' > .env
+        run: echo 'PASSWORD_SECRET_KEY="${{ env.PASSWORD_SECRET_KEY }}"' > .env
 
       - name: Build
         run: make build/android
