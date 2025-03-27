@@ -30,11 +30,6 @@ void callbackDispatcher() {
           await notificationService.showSyncProgressNotification();
           final config = await ConfigStorage().readConfig();
 
-          final permissionState = await PhotoManager.requestPermissionExtend();
-          if (!permissionState.isAuth) {
-            errorMessage = 'Photo library permission not granted.';
-            throw Exception(errorMessage);
-          }
           await PhotoManager.setIgnorePermissionCheck(true);
 
           bool anyAccountSynced = false;
