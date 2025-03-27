@@ -203,7 +203,7 @@ class _AppNavigationState extends State<AppNavigation> {
             label: 'Photos Sync',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
+            icon: Icon(Icons.settings),
             activeIcon: Icon(Icons.settings),
             label: 'Settings',
           ),
