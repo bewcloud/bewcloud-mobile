@@ -1,6 +1,7 @@
 import UIKit
 import Flutter
 import workmanager
+import UserNotifications
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
@@ -10,6 +11,15 @@ import workmanager
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
     
+    if #available(iOS 10.0, *) {
+      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+      UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+          if let error = error {
+              print("Notification permission error: \(error)")
+          }
+      }
+    }
+
     WorkmanagerPlugin.registerTask(withIdentifier: "auto-upload-photos")
     WorkmanagerPlugin.registerTask(withIdentifier: "com.bewcloud.mobile.iOSBackgroundAppRefresh")
     WorkmanagerPlugin.registerTask(withIdentifier: "workmanager.background.task")

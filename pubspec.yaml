@@ -25,6 +25,7 @@ dependencies:
   prompt_dialog: ^1.0.15
   workmanager: ^0.5.2
   photo_manager: ^3.0.0
+  flutter_local_notifications: ^17.1.2
 
 dev_dependencies:
   flutter_test:

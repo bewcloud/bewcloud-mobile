@@ -2,67 +2,137 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:workmanager/workmanager.dart';
+import 'dart:io';
 
 import 'files_page.dart';
 import 'settings_page.dart';
 import 'config.dart';
 import 'photos.dart';
 import 'api.dart';
+import 'photo_sync_page.dart';
+import 'notifications.dart';
+
+final NotificationService notificationService = NotificationService();
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     await dotenv.load(fileName: ".env");
+    await notificationService.init();
+    bool success = false;
+    String errorMessage = 'An unknown error occurred.';
 
-    switch (task) {
-      case Workmanager.iOSBackgroundTask:
-      case "autoUploadPhotos":
-      case "auto-upload-photos":
-        final config = await ConfigStorage().readConfig();
+    try {
+      switch (task) {
+        case Workmanager.iOSBackgroundTask:
+        case "autoUploadPhotos":
+        case "auto-upload-photos":
+          await notificationService.showSyncProgressNotification();
+          final config = await ConfigStorage().readConfig();
 
-        final isThereAnyAutoUploadConfig = config.accounts
-            .any((account) => account.autoUploadDestinationDirectory != null);
+          await PhotoManager.setIgnorePermissionCheck(true);
 
-        if (!isThereAnyAutoUploadConfig) {
-          break;
-        }
+          bool anyAccountSynced = false;
+          int totalFilesUploaded = 0;
+          int totalFilesSkipped = 0;
 
-        final List<RecentFile> recentFiles = await getRecentFiles();
+          for (var account in config.accounts) {
+            final selectedAlbumIds = account.selectedPhotoAlbumIds;
 
-        for (var account in config.accounts) {
-          final destinationDirectoryPath =
-              account.autoUploadDestinationDirectory;
-
-          if (destinationDirectoryPath == null) {
-            continue;
-          }
-
-          final api = Api(account: account);
-
-          final accountDestinationFiles =
-              await api.fetchFiles(destinationDirectoryPath);
-
-          for (var recentFile in recentFiles) {
-            final fileName = recentFile.file.path.split('/').removeLast();
-
-            // Check if file exists in destination
-            if (accountDestinationFiles
-                .any((destinationFile) => destinationFile.name == fileName)) {
+            if (selectedAlbumIds == null || selectedAlbumIds.isEmpty) {
               continue;
             }
+            anyAccountSynced = true;
 
-            await api.uploadFile(destinationDirectoryPath, recentFile.file);
+            final api = Api(account: account);
+            const String basePhotoDir = '/Photos/';
+
+            bool baseDirExists = await api.ensureDirectoryExists(basePhotoDir);
+            if (!baseDirExists) {
+               errorMessage = 'Failed to ensure base directory $basePhotoDir for ${account.username}.';
+               throw Exception(errorMessage);
+            }
+
+            final Map<String, List<File>> filesToUploadByAlbum =
+                await getFilesFromAlbums(selectedAlbumIds);
+
+            if (filesToUploadByAlbum.isEmpty) {
+               continue;
+            }
+
+            for (var albumEntry in filesToUploadByAlbum.entries) {
+              final albumName = albumEntry.key;
+              final filesInAlbum = albumEntry.value;
+              final sanitizedAlbumName = albumName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+              if (sanitizedAlbumName.isEmpty) {
+                 continue;
+              }
+              final String targetDirectoryPath = '$basePhotoDir$sanitizedAlbumName/';
+
+              bool albumDirExists = await api.ensureDirectoryExists(targetDirectoryPath);
+              if (!albumDirExists) {
+                errorMessage = 'Failed ensure album directory $targetDirectoryPath for ${account.username}.';
+                throw Exception(errorMessage);
+              }
+
+              List<CloudFile> existingFiles = [];
+              try {
+                 existingFiles = await api.fetchFiles(targetDirectoryPath);
+              } catch (e) {
+                 errorMessage = 'Error fetching existing files from $targetDirectoryPath: $e';
+                 throw Exception(errorMessage);
+              }
+
+              for (var fileToUpload in filesInAlbum) {
+                final fileName = fileToUpload.path.split('/').last;
+
+                if (existingFiles.any((existingFile) => existingFile.name == fileName)) {
+                  totalFilesSkipped++;
+                  continue;
+                }
+
+                try {
+                  bool uploaded = await api.uploadFile(targetDirectoryPath, fileToUpload);
+                  if (uploaded) {
+                    totalFilesUploaded++;
+                  } else {
+                  }
+                } catch (e) {
+                   errorMessage = 'Error uploading $fileName to $targetDirectoryPath: $e';
+                   throw Exception(errorMessage);
+                }
+              }
+            }
           }
-        }
-        break;
+
+          if (!anyAccountSynced) {
+             await notificationService.showSyncCompleteNotification(message: 'No accounts configured for photo sync.');
+          } else {
+             await notificationService.showSyncCompleteNotification(message: 'Sync complete. Uploaded $totalFilesUploaded file(s). Skipped $totalFilesSkipped existing.');
+          }
+          success = true;
+          break;
+
+        default:
+           success = true;
+           break;
+      }
+    } catch (e, stacktrace) {
+       debugPrint("Workmanager: Error during background task execution: $e\n$stacktrace");
+       await notificationService.showSyncErrorNotification(message: errorMessage);
+       success = false;
     }
-    bool success = true;
+
     return Future.value(success);
   });
 }
 
 Future main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   await dotenv.load(fileName: ".env");
+  await notificationService.init();
+  await notificationService.requestPermissions();
 
   Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
   Workmanager().registerPeriodicTask(
@@ -105,48 +175,48 @@ class AppNavigation extends StatefulWidget {
 }
 
 class _AppNavigationState extends State<AppNavigation> {
-  int currentPageIndex = 0;
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final theme = Theme.of(context);
+    final List<Widget> _widgetOptions = [
+      FilesPage(theme: theme),
+      PhotoSyncPage(),
+      SettingsPage(theme: theme),
+    ];
+    
     return Scaffold(
-      appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.only(top: 0, bottom: 0, left: 8, right: 0),
-          child: Image.asset(
-            "assets/images/app-icon.png",
-          ),
-        ),
-        title: const Text(
-          'bewCloud',
-          style: TextStyle(fontWeight: FontWeight.w300),
-        ),
+      body: Center(
+        child: _widgetOptions.elementAt(_selectedIndex),
       ),
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-        indicatorColor: Colors.lightBlue,
-        selectedIndex: currentPageIndex,
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.folder),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
             icon: Icon(Icons.folder_outlined),
+            activeIcon: Icon(Icons.folder),
             label: 'Files',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
+            icon: Icon(Icons.photo_library_outlined),
+            activeIcon: Icon(Icons.photo_library),
+            label: 'Photos Sync',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.settings),
+            activeIcon: Icon(Icons.settings),
             label: 'Settings',
           ),
         ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
-      body: <Widget>[
-        FilesPage(theme: theme),
-        SettingsPage(theme: theme),
-      ][currentPageIndex],
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 }
