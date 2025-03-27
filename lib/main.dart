@@ -10,51 +10,58 @@ import 'config.dart';
 import 'photos.dart';
 import 'api.dart';
 import 'photo_sync_page.dart';
+import 'notifications.dart';
+
+final NotificationService notificationService = NotificationService();
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     await dotenv.load(fileName: ".env");
+    await notificationService.init();
     bool success = false;
+    String errorMessage = 'An unknown error occurred.';
 
     try {
       switch (task) {
         case Workmanager.iOSBackgroundTask:
         case "autoUploadPhotos":
         case "auto-upload-photos":
-          debugPrint("Workmanager: Running auto-upload task");
+          await notificationService.showSyncProgressNotification();
           final config = await ConfigStorage().readConfig();
 
           final permissionState = await PhotoManager.requestPermissionExtend();
           if (!permissionState.isAuth) {
-            debugPrint("Workmanager: Photo permission not granted. Skipping task.");
-            return Future.value(false);
+            errorMessage = 'Photo library permission not granted.';
+            throw Exception(errorMessage);
           }
           await PhotoManager.setIgnorePermissionCheck(true);
+
+          bool anyAccountSynced = false;
+          int totalFilesUploaded = 0;
+          int totalFilesSkipped = 0;
 
           for (var account in config.accounts) {
             final selectedAlbumIds = account.selectedPhotoAlbumIds;
 
             if (selectedAlbumIds == null || selectedAlbumIds.isEmpty) {
-              debugPrint("Workmanager: Account ${account.username} has no albums selected. Skipping.");
               continue;
             }
+            anyAccountSynced = true;
 
-            debugPrint("Workmanager: Processing account ${account.username}");
             final api = Api(account: account);
             const String basePhotoDir = '/Photos/';
 
             bool baseDirExists = await api.ensureDirectoryExists(basePhotoDir);
             if (!baseDirExists) {
-               debugPrint("Workmanager: Failed to ensure base directory $basePhotoDir exists for account ${account.username}. Skipping account.");
-               continue;
+               errorMessage = 'Failed to ensure base directory $basePhotoDir for ${account.username}.';
+               throw Exception(errorMessage);
             }
 
             final Map<String, List<File>> filesToUploadByAlbum =
                 await getFilesFromAlbums(selectedAlbumIds);
 
             if (filesToUploadByAlbum.isEmpty) {
-               debugPrint("Workmanager: No files found in selected albums for account ${account.username}.");
                continue;
             }
 
@@ -63,58 +70,61 @@ void callbackDispatcher() {
               final filesInAlbum = albumEntry.value;
               final sanitizedAlbumName = albumName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
               if (sanitizedAlbumName.isEmpty) {
-                 debugPrint("Workmanager: Skipping album with empty sanitized name (original: '$albumName').");
                  continue;
               }
               final String targetDirectoryPath = '$basePhotoDir$sanitizedAlbumName/';
 
-              debugPrint("Workmanager: Processing album '$albumName' -> $targetDirectoryPath");
-
               bool albumDirExists = await api.ensureDirectoryExists(targetDirectoryPath);
               if (!albumDirExists) {
-                debugPrint("Workmanager: Failed to ensure album directory $targetDirectoryPath exists. Skipping album '$albumName'.");
-                continue;
+                errorMessage = 'Failed ensure album directory $targetDirectoryPath for ${account.username}.';
+                throw Exception(errorMessage);
               }
 
               List<CloudFile> existingFiles = [];
               try {
                  existingFiles = await api.fetchFiles(targetDirectoryPath);
               } catch (e) {
-                 debugPrint("Workmanager: Error fetching existing files from $targetDirectoryPath: $e. Proceeding with uploads.");
-                 existingFiles = [];
+                 errorMessage = 'Error fetching existing files from $targetDirectoryPath: $e';
+                 throw Exception(errorMessage);
               }
 
               for (var fileToUpload in filesInAlbum) {
                 final fileName = fileToUpload.path.split('/').last;
 
                 if (existingFiles.any((existingFile) => existingFile.name == fileName)) {
-                  // debugPrint("Workmanager: File '$fileName' already exists in $targetDirectoryPath. Skipping.");
+                  totalFilesSkipped++;
                   continue;
                 }
 
-                debugPrint("Workmanager: Uploading '$fileName' to $targetDirectoryPath");
                 try {
                   bool uploaded = await api.uploadFile(targetDirectoryPath, fileToUpload);
-                  if (!uploaded) {
-                     debugPrint("Workmanager: Failed to upload '$fileName' to $targetDirectoryPath.");
+                  if (uploaded) {
+                    totalFilesUploaded++;
+                  } else {
                   }
                 } catch (e) {
-                   debugPrint("Workmanager: Error uploading '$fileName' to $targetDirectoryPath: $e");
+                   errorMessage = 'Error uploading $fileName to $targetDirectoryPath: $e';
+                   throw Exception(errorMessage);
                 }
               }
             }
           }
+
+          if (!anyAccountSynced) {
+             await notificationService.showSyncCompleteNotification(message: 'No accounts configured for photo sync.');
+          } else {
+             await notificationService.showSyncCompleteNotification(message: 'Sync complete. Uploaded $totalFilesUploaded file(s). Skipped $totalFilesSkipped existing.');
+          }
           success = true;
-          debugPrint("Workmanager: Auto-upload task finished.");
           break;
 
         default:
-           debugPrint("Workmanager: Received unknown task: $task");
            success = true;
            break;
       }
     } catch (e, stacktrace) {
        debugPrint("Workmanager: Error during background task execution: $e\n$stacktrace");
+       await notificationService.showSyncErrorNotification(message: errorMessage);
        success = false;
     }
 
@@ -123,7 +133,11 @@ void callbackDispatcher() {
 }
 
 Future main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   await dotenv.load(fileName: ".env");
+  await notificationService.init();
+  await notificationService.requestPermissions();
 
   Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
   Workmanager().registerPeriodicTask(
