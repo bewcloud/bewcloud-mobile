@@ -49,78 +49,91 @@ void callbackDispatcher() {
 
             bool baseDirExists = await api.ensureDirectoryExists(basePhotoDir);
             if (!baseDirExists) {
-               errorMessage = 'Failed to ensure base directory $basePhotoDir for ${account.username}.';
-               throw Exception(errorMessage);
+              errorMessage =
+                  'Failed to ensure base directory $basePhotoDir for ${account.username}.';
+              throw Exception(errorMessage);
             }
 
             final Map<String, List<File>> filesToUploadByAlbum =
                 await getFilesFromAlbums(selectedAlbumIds);
 
             if (filesToUploadByAlbum.isEmpty) {
-               continue;
+              continue;
             }
 
             for (var albumEntry in filesToUploadByAlbum.entries) {
               final albumName = albumEntry.key;
               final filesInAlbum = albumEntry.value;
-              final sanitizedAlbumName = albumName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+              final sanitizedAlbumName =
+                  albumName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
               if (sanitizedAlbumName.isEmpty) {
-                 continue;
+                continue;
               }
-              final String targetDirectoryPath = '$basePhotoDir$sanitizedAlbumName/';
+              final String targetDirectoryPath =
+                  '$basePhotoDir$sanitizedAlbumName/';
 
-              bool albumDirExists = await api.ensureDirectoryExists(targetDirectoryPath);
+              bool albumDirExists =
+                  await api.ensureDirectoryExists(targetDirectoryPath);
               if (!albumDirExists) {
-                errorMessage = 'Failed ensure album directory $targetDirectoryPath for ${account.username}.';
+                errorMessage =
+                    'Failed ensure album directory $targetDirectoryPath for ${account.username}.';
                 throw Exception(errorMessage);
               }
 
               List<CloudFile> existingFiles = [];
               try {
-                 existingFiles = await api.fetchFiles(targetDirectoryPath);
+                existingFiles = await api.fetchFiles(targetDirectoryPath);
               } catch (e) {
-                 errorMessage = 'Error fetching existing files from $targetDirectoryPath: $e';
-                 throw Exception(errorMessage);
+                errorMessage =
+                    'Error fetching existing files from $targetDirectoryPath: $e';
+                throw Exception(errorMessage);
               }
 
               for (var fileToUpload in filesInAlbum) {
                 final fileName = fileToUpload.path.split('/').last;
 
-                if (existingFiles.any((existingFile) => existingFile.name == fileName)) {
+                if (existingFiles
+                    .any((existingFile) => existingFile.name == fileName)) {
                   totalFilesSkipped++;
                   continue;
                 }
 
                 try {
-                  bool uploaded = await api.uploadFile(targetDirectoryPath, fileToUpload);
+                  bool uploaded =
+                      await api.uploadFile(targetDirectoryPath, fileToUpload);
                   if (uploaded) {
                     totalFilesUploaded++;
-                  } else {
-                  }
+                  } else {}
                 } catch (e) {
-                   errorMessage = 'Error uploading $fileName to $targetDirectoryPath: $e';
-                   throw Exception(errorMessage);
+                  errorMessage =
+                      'Error uploading $fileName to $targetDirectoryPath: $e';
+                  throw Exception(errorMessage);
                 }
               }
             }
           }
 
           if (!anyAccountSynced) {
-             await notificationService.showSyncCompleteNotification(message: 'No accounts configured for photo sync.');
+            await notificationService.showSyncCompleteNotification(
+                message: 'No accounts configured for photo sync.');
           } else {
-             await notificationService.showSyncCompleteNotification(message: 'Sync complete. Uploaded $totalFilesUploaded file(s). Skipped $totalFilesSkipped existing.');
+            await notificationService.showSyncCompleteNotification(
+                message:
+                    'Sync complete. Uploaded $totalFilesUploaded file(s). Skipped $totalFilesSkipped existing.');
           }
           success = true;
           break;
 
         default:
-           success = true;
-           break;
+          success = true;
+          break;
       }
     } catch (e, stacktrace) {
-       debugPrint("Workmanager: Error during background task execution: $e\n$stacktrace");
-       await notificationService.showSyncErrorNotification(message: errorMessage);
-       success = false;
+      debugPrint(
+          "Workmanager: Error during background task execution: $e\n$stacktrace");
+      await notificationService.showSyncErrorNotification(
+          message: errorMessage);
+      success = false;
     }
 
     return Future.value(success);
@@ -180,15 +193,15 @@ class _AppNavigationState extends State<AppNavigation> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final List<Widget> _widgetOptions = [
+    final List<Widget> widgetOptions = [
       FilesPage(theme: theme),
-      PhotoSyncPage(),
+      const PhotoSyncPage(),
       SettingsPage(theme: theme),
     ];
-    
+
     return Scaffold(
       body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
+        child: widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[

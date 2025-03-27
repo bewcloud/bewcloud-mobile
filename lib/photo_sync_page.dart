@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'config.dart';
-import 'api.dart';
 
 class PhotoSyncPage extends StatefulWidget {
   const PhotoSyncPage({super.key});
@@ -21,7 +20,6 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
   List<CloudAccount> _accounts = [];
   final ConfigStorage _configStorage = ConfigStorage();
 
-
   @override
   void initState() {
     super.initState();
@@ -29,7 +27,9 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
   }
 
   Future<void> _loadInitialData() async {
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
     await _loadCloudAccounts();
     await _loadChosenAccountIndex();
     await _loadAlbums();
@@ -39,7 +39,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
     });
   }
 
-   Future<void> _loadCloudAccounts() async {
+  Future<void> _loadCloudAccounts() async {
     final config = await _configStorage.readConfig();
     if (!mounted) return;
     setState(() {
@@ -52,11 +52,13 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
     final loadedIndex = prefs.getInt('chosenAccountIndex') ?? 0;
     if (!mounted) return;
     setState(() {
-      _chosenAccountIndex = (loadedIndex >= 0 && loadedIndex < _accounts.length) ? loadedIndex : 0;
+      _chosenAccountIndex = (loadedIndex >= 0 && loadedIndex < _accounts.length)
+          ? loadedIndex
+          : 0;
     });
   }
 
-   Future<void> _updateChosenAccountIndex(int newIndex) async {
+  Future<void> _updateChosenAccountIndex(int newIndex) async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
@@ -65,7 +67,6 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
       _loadSelectedAlbums();
     });
   }
-
 
   Future<void> _loadAlbums() async {
     final permissionState = await PhotoManager.requestPermissionExtend();
@@ -78,7 +79,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
       });
     } else {
       PhotoManager.openSetting();
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Photo library permission is required.')),
       );
     }
@@ -87,15 +88,16 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
   Future<void> _loadSelectedAlbums() async {
     final currentAccount = _currentAccount;
     if (currentAccount != null) {
-       if (!mounted) return;
+      if (!mounted) return;
       setState(() {
-        _selectedAlbumIds = (currentAccount.selectedPhotoAlbumIds ?? []).toSet();
+        _selectedAlbumIds =
+            (currentAccount.selectedPhotoAlbumIds ?? []).toSet();
       });
     } else {
-       if (!mounted) return;
-       setState(() {
-         _selectedAlbumIds = {};
-       });
+      if (!mounted) return;
+      setState(() {
+        _selectedAlbumIds = {};
+      });
     }
   }
 
@@ -104,10 +106,13 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
     if (currentAccount == null) return;
 
     final config = await _configStorage.readConfig();
-    final accountIndex = config.accounts.indexWhere((acc) => acc.url == currentAccount.url && acc.username == currentAccount.username);
+    final accountIndex = config.accounts.indexWhere((acc) =>
+        acc.url == currentAccount.url &&
+        acc.username == currentAccount.username);
 
     if (accountIndex != -1) {
-      config.accounts[accountIndex].selectedPhotoAlbumIds = _selectedAlbumIds.toList();
+      config.accounts[accountIndex].selectedPhotoAlbumIds =
+          _selectedAlbumIds.toList();
       await _configStorage.writeConfig(config);
     }
     // Optionally show a confirmation message
@@ -134,7 +139,6 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
     }
     return null;
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -164,14 +168,13 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
       );
     }).toList());
 
-
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             const Text('Select Photo Folders to Sync'),
-             if (currentAccount != null)
+            const Text('Select Photo Folders to Sync'),
+            if (currentAccount != null)
               Text(
                 'Account: ${currentAccount.username}',
                 style: Theme.of(context).textTheme.titleSmall,
@@ -212,25 +215,29 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : currentAccount == null
-            ? const Center(child: Text('No accounts configured. Please add an account in Settings.'))
-            : _albums.isEmpty
-              ? const Center(child: Text('No photo albums found or permission denied.'))
-              : ListView.builder(
-                  itemCount: _albums.length,
-                  itemBuilder: (context, index) {
-                    final album = _albums[index];
-                    final isSelected = _selectedAlbumIds.contains(album.id);
-                    return CheckboxListTile(
-                      title: Text(album.name),
-                      value: isSelected,
-                      onChanged: (bool? value) {
-                        if (value != null) {
-                          _toggleAlbumSelection(album.id);
-                        }
+              ? const Center(
+                  child: Text(
+                      'No accounts configured. Please add an account in Settings.'))
+              : _albums.isEmpty
+                  ? const Center(
+                      child:
+                          Text('No photo albums found or permission denied.'))
+                  : ListView.builder(
+                      itemCount: _albums.length,
+                      itemBuilder: (context, index) {
+                        final album = _albums[index];
+                        final isSelected = _selectedAlbumIds.contains(album.id);
+                        return CheckboxListTile(
+                          title: Text(album.name),
+                          value: isSelected,
+                          onChanged: (bool? value) {
+                            if (value != null) {
+                              _toggleAlbumSelection(album.id);
+                            }
+                          },
+                        );
                       },
-                    );
-                  },
-                ),
+                    ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Workmanager().registerOneOffTask(
@@ -243,7 +250,8 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Manual photo sync initiated. It will run in the background.'),
+              content: Text(
+                  'Manual photo sync initiated. It will run in the background.'),
               duration: Duration(seconds: 3),
             ),
           );
@@ -254,4 +262,4 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
       ),
     );
   }
-} 
+}

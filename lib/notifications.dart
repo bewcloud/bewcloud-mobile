@@ -1,7 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
-  static final NotificationService _notificationService = NotificationService._internal();
+  static final NotificationService _notificationService =
+      NotificationService._internal();
 
   factory NotificationService() {
     return _notificationService;
@@ -14,7 +15,8 @@ class NotificationService {
 
   static const String _channelId = 'bewcloud_sync_channel';
   static const String _channelName = 'Photo Sync';
-  static const String _channelDescription = 'Notifications for photo synchronization status';
+  static const String _channelDescription =
+      'Notifications for photo synchronization status';
   static const int _notificationId = 0;
 
   Future<void> init() async {
@@ -28,7 +30,8 @@ class NotificationService {
       requestSoundPermission: false,
     );
 
-    const InitializationSettings initializationSettings = InitializationSettings(
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
       macOS: null,
@@ -63,14 +66,15 @@ class NotificationService {
         onlyAlertOnce: true,
       ),
       iOS: const DarwinNotificationDetails(
-         presentAlert: true,
-         presentBadge: false,
-         presentSound: false,
+        presentAlert: true,
+        presentBadge: false,
+        presentSound: false,
       ),
     );
   }
 
-  Future<void> showSyncProgressNotification({String message = 'Syncing photos...'}) async {
+  Future<void> showSyncProgressNotification(
+      {String message = 'Syncing photos...'}) async {
     await flutterLocalNotificationsPlugin.show(
       _notificationId,
       'bewCloud Photo Sync',
@@ -79,7 +83,8 @@ class NotificationService {
     );
   }
 
-  Future<void> showSyncCompleteNotification({String message = 'Photo sync complete.'}) async {
+  Future<void> showSyncCompleteNotification(
+      {String message = 'Photo sync complete.'}) async {
     await flutterLocalNotificationsPlugin.show(
       _notificationId,
       'bewCloud Photo Sync',
@@ -88,7 +93,8 @@ class NotificationService {
     );
   }
 
-   Future<void> showSyncErrorNotification({String message = 'Photo sync failed. Check app for details.'}) async {
+  Future<void> showSyncErrorNotification(
+      {String message = 'Photo sync failed. Check app for details.'}) async {
     await flutterLocalNotificationsPlugin.show(
       _notificationId,
       'bewCloud Photo Sync',
@@ -98,12 +104,13 @@ class NotificationService {
   }
 
   Future<void> requestPermissions() async {
-     final plugin = flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-     if (plugin != null) {
-        await plugin.requestNotificationsPermission();
-     }
-     await flutterLocalNotificationsPlugin
+    final plugin =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    if (plugin != null) {
+      await plugin.requestNotificationsPermission();
+    }
+    await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(
@@ -112,4 +119,4 @@ class NotificationService {
           sound: true,
         );
   }
-} 
+}

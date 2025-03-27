@@ -145,33 +145,35 @@ class Api {
           final existingDirs = await fetchDirectories(currentCumulativePath);
           exists = existingDirs.any((dir) => dir.name == part);
         } catch (e) {
-           if (currentCumulativePath != '/') {
-              debugPrint("Error checking parent directory $currentCumulativePath: $e");
-              return false;
-           }
-           exists = false;
+          if (currentCumulativePath != '/') {
+            debugPrint(
+                "Error checking parent directory $currentCumulativePath: $e");
+            return false;
+          }
+          exists = false;
         }
-
 
         if (!exists) {
           bool created = await createDirectory(currentCumulativePath, part);
           if (!created) {
-             try {
-                final existingDirs = await fetchDirectories(currentCumulativePath);
-                if (!existingDirs.any((dir) => dir.name == part)) {
-                   debugPrint("Failed to create directory part: $part in $currentCumulativePath and it still doesn't exist.");
-                   return false;
-                }
-             } catch (e) {
-                debugPrint("Error confirming directory creation $nextPath: $e");
+            try {
+              final existingDirs =
+                  await fetchDirectories(currentCumulativePath);
+              if (!existingDirs.any((dir) => dir.name == part)) {
+                debugPrint(
+                    "Failed to create directory part: $part in $currentCumulativePath and it still doesn't exist.");
                 return false;
-             }
+              }
+            } catch (e) {
+              debugPrint("Error confirming directory creation $nextPath: $e");
+              return false;
+            }
           }
         }
         currentCumulativePath = nextPath;
       } catch (e) {
-         debugPrint("Error ensuring directory $nextPath exists: $e");
-         return false;
+        debugPrint("Error ensuring directory $nextPath exists: $e");
+        return false;
       }
     }
     return true;

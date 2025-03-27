@@ -54,7 +54,8 @@ Future<List<RecentFile>> getRecentFiles() async {
   return recentFiles;
 }
 
-Future<Map<String, List<File>>> getFilesFromAlbums(List<String> albumIds) async {
+Future<Map<String, List<File>>> getFilesFromAlbums(
+    List<String> albumIds) async {
   Map<String, List<File>> albumFiles = {};
   final List<AssetPathEntity> allAlbums = await PhotoManager.getAssetPathList(
     type: RequestType.all,
@@ -77,11 +78,11 @@ Future<Map<String, List<File>>> getFilesFromAlbums(List<String> albumIds) async 
       int size = 100;
       List<AssetEntity> currentPageAssets;
       do {
-        currentPageAssets = await album.getAssetListPaged(page: page, size: size);
+        currentPageAssets =
+            await album.getAssetListPaged(page: page, size: size);
         assets.addAll(currentPageAssets);
         page++;
       } while (currentPageAssets.isNotEmpty);
-
 
       List<File> files = [];
       for (var asset in assets) {
@@ -93,10 +94,11 @@ Future<Map<String, List<File>>> getFilesFromAlbums(List<String> albumIds) async 
           if (file != null) {
             files.add(file);
           } else {
-             debugPrint("Could not get originFile for asset ${asset.id} in album ${album.name}");
+            debugPrint(
+                "Could not get originFile for asset ${asset.id} in album ${album.name}");
           }
         } catch (e) {
-           debugPrint("Error getting file for asset ${asset.id}: $e");
+          debugPrint("Error getting file for asset ${asset.id}: $e");
         }
       }
       albumFiles[album.name] = files;
