@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 
 import 'config.dart';
 import 'api.dart';
@@ -230,6 +231,27 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
                     );
                   },
                 ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Workmanager().registerOneOffTask(
+            "manualPhotoSync_${DateTime.now().millisecondsSinceEpoch}",
+            "auto-upload-photos",
+            constraints: Constraints(
+              networkType: NetworkType.connected,
+            ),
+          );
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Manual photo sync initiated. It will run in the background.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
+        tooltip: 'Sync Photos Now',
+        icon: const Icon(Icons.sync),
+        label: const Text('Sync Now'),
+      ),
     );
   }
 } 
