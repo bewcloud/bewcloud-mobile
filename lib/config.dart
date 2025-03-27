@@ -80,36 +80,28 @@ String stringifyConfig(Config config) {
 class ConfigStorage {
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
-
     return directory.path;
   }
 
   Future<File> get _localFile async {
     final path = await _localPath;
-
-    debugPrint('$path/config.json');
-
     return File('$path/config.json');
   }
 
   Future<Config> readConfig() async {
     try {
       final file = await _localFile;
-
       final contents = await file.readAsString();
-      debugPrint(contents);
-
       return parseConfig(contents);
     } catch (e) {
+      // If encountering an error, return default config
       return Config(accounts: []);
     }
   }
 
   Future<File> writeConfig(Config config) async {
     final file = await _localFile;
-
-    final contents = stringifyConfig(config);
-
-    return file.writeAsString(contents);
+    final jsonString = stringifyConfig(config);
+    return file.writeAsString(jsonString);
   }
 }

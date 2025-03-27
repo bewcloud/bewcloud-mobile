@@ -15,7 +15,7 @@ import 'photo_sync_page.dart';
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     await dotenv.load(fileName: ".env");
-    bool success = false
+    bool success = false;
 
     try {
       switch (task) {
@@ -168,20 +168,15 @@ class AppNavigation extends StatefulWidget {
 class _AppNavigationState extends State<AppNavigation> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    FilesPage(),
-    PhotoSyncPage(),
-    SettingsPage(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final List<Widget> _widgetOptions = [
+      FilesPage(theme: theme),
+      PhotoSyncPage(),
+      SettingsPage(theme: theme),
+    ];
+    
     return Scaffold(
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
@@ -208,5 +203,11 @@ class _AppNavigationState extends State<AppNavigation> {
         onTap: _onItemTapped,
       ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 }
