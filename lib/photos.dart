@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart'; // Import for debugPrint
 import 'package:photo_manager/photo_manager.dart';
 
 class RecentFile {
@@ -51,4 +52,57 @@ Future<List<RecentFile>> getRecentFiles() async {
   }
 
   return recentFiles;
+}
+
+Future<Map<String, List<File>>> getFilesFromAlbums(List<String> albumIds) async {
+  Map<String, List<File>> albumFiles = {};
+  final List<AssetPathEntity> allAlbums = await PhotoManager.getAssetPathList(
+    type: RequestType.all,
+  );
+
+  final Map<String, AssetPathEntity> albumMap = {
+    for (var album in allAlbums) album.id: album
+  };
+
+  for (String albumId in albumIds) {
+    final album = albumMap[albumId];
+    if (album == null) {
+      debugPrint("Could not find album with ID: $albumId");
+      continue;
+    }
+
+    try {
+      List<AssetEntity> assets = [];
+      int page = 0;
+      int size = 100;
+      List<AssetEntity> currentPageAssets;
+      do {
+        currentPageAssets = await album.getAssetListPaged(page: page, size: size);
+        assets.addAll(currentPageAssets);
+        page++;
+      } while (currentPageAssets.isNotEmpty);
+
+
+      List<File> files = [];
+      for (var asset in assets) {
+        if (asset.type != AssetType.image && asset.type != AssetType.video) {
+          continue;
+        }
+        try {
+          final file = await asset.originFile;
+          if (file != null) {
+            files.add(file);
+          } else {
+             debugPrint("Could not get originFile for asset ${asset.id} in album ${album.name}");
+          }
+        } catch (e) {
+           debugPrint("Error getting file for asset ${asset.id}: $e");
+        }
+      }
+      albumFiles[album.name] = files;
+    } catch (e) {
+      debugPrint("Error processing album '${album.name}' (ID $albumId): $e");
+    }
+  }
+  return albumFiles;
 }

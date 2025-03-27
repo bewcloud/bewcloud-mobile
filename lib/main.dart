@@ -2,61 +2,122 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:workmanager/workmanager.dart';
+import 'dart:io';
 
 import 'files_page.dart';
 import 'settings_page.dart';
 import 'config.dart';
 import 'photos.dart';
 import 'api.dart';
+import 'photo_sync_page.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     await dotenv.load(fileName: ".env");
+    bool success = false
 
-    switch (task) {
-      case Workmanager.iOSBackgroundTask:
-      case "autoUploadPhotos":
-      case "auto-upload-photos":
-        final config = await ConfigStorage().readConfig();
+    try {
+      switch (task) {
+        case Workmanager.iOSBackgroundTask:
+        case "autoUploadPhotos":
+        case "auto-upload-photos":
+          debugPrint("Workmanager: Running auto-upload task");
+          final config = await ConfigStorage().readConfig();
 
-        final isThereAnyAutoUploadConfig = config.accounts
-            .any((account) => account.autoUploadDestinationDirectory != null);
-
-        if (!isThereAnyAutoUploadConfig) {
-          break;
-        }
-
-        final List<RecentFile> recentFiles = await getRecentFiles();
-
-        for (var account in config.accounts) {
-          final destinationDirectoryPath =
-              account.autoUploadDestinationDirectory;
-
-          if (destinationDirectoryPath == null) {
-            continue;
+          final permissionState = await PhotoManager.requestPermissionExtend();
+          if (!permissionState.isAuth) {
+            debugPrint("Workmanager: Photo permission not granted. Skipping task.");
+            return Future.value(false);
           }
+          await PhotoManager.setIgnorePermissionCheck(true);
 
-          final api = Api(account: account);
+          for (var account in config.accounts) {
+            final selectedAlbumIds = account.selectedPhotoAlbumIds;
 
-          final accountDestinationFiles =
-              await api.fetchFiles(destinationDirectoryPath);
-
-          for (var recentFile in recentFiles) {
-            final fileName = recentFile.file.path.split('/').removeLast();
-
-            // Check if file exists in destination
-            if (accountDestinationFiles
-                .any((destinationFile) => destinationFile.name == fileName)) {
+            if (selectedAlbumIds == null || selectedAlbumIds.isEmpty) {
+              debugPrint("Workmanager: Account ${account.username} has no albums selected. Skipping.");
               continue;
             }
 
-            await api.uploadFile(destinationDirectoryPath, recentFile.file);
+            debugPrint("Workmanager: Processing account ${account.username}");
+            final api = Api(account: account);
+            const String basePhotoDir = '/Photos/';
+
+            bool baseDirExists = await api.ensureDirectoryExists(basePhotoDir);
+            if (!baseDirExists) {
+               debugPrint("Workmanager: Failed to ensure base directory $basePhotoDir exists for account ${account.username}. Skipping account.");
+               continue;
+            }
+
+            final Map<String, List<File>> filesToUploadByAlbum =
+                await getFilesFromAlbums(selectedAlbumIds);
+
+            if (filesToUploadByAlbum.isEmpty) {
+               debugPrint("Workmanager: No files found in selected albums for account ${account.username}.");
+               continue;
+            }
+
+            for (var albumEntry in filesToUploadByAlbum.entries) {
+              final albumName = albumEntry.key;
+              final filesInAlbum = albumEntry.value;
+              final sanitizedAlbumName = albumName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+              if (sanitizedAlbumName.isEmpty) {
+                 debugPrint("Workmanager: Skipping album with empty sanitized name (original: '$albumName').");
+                 continue;
+              }
+              final String targetDirectoryPath = '$basePhotoDir$sanitizedAlbumName/';
+
+              debugPrint("Workmanager: Processing album '$albumName' -> $targetDirectoryPath");
+
+              bool albumDirExists = await api.ensureDirectoryExists(targetDirectoryPath);
+              if (!albumDirExists) {
+                debugPrint("Workmanager: Failed to ensure album directory $targetDirectoryPath exists. Skipping album '$albumName'.");
+                continue;
+              }
+
+              List<CloudFile> existingFiles = [];
+              try {
+                 existingFiles = await api.fetchFiles(targetDirectoryPath);
+              } catch (e) {
+                 debugPrint("Workmanager: Error fetching existing files from $targetDirectoryPath: $e. Proceeding with uploads.");
+                 existingFiles = [];
+              }
+
+              for (var fileToUpload in filesInAlbum) {
+                final fileName = fileToUpload.path.split('/').last;
+
+                if (existingFiles.any((existingFile) => existingFile.name == fileName)) {
+                  // debugPrint("Workmanager: File '$fileName' already exists in $targetDirectoryPath. Skipping.");
+                  continue;
+                }
+
+                debugPrint("Workmanager: Uploading '$fileName' to $targetDirectoryPath");
+                try {
+                  bool uploaded = await api.uploadFile(targetDirectoryPath, fileToUpload);
+                  if (!uploaded) {
+                     debugPrint("Workmanager: Failed to upload '$fileName' to $targetDirectoryPath.");
+                  }
+                } catch (e) {
+                   debugPrint("Workmanager: Error uploading '$fileName' to $targetDirectoryPath: $e");
+                }
+              }
+            }
           }
-        }
-        break;
+          success = true;
+          debugPrint("Workmanager: Auto-upload task finished.");
+          break;
+
+        default:
+           debugPrint("Workmanager: Received unknown task: $task");
+           success = true;
+           break;
+      }
+    } catch (e, stacktrace) {
+       debugPrint("Workmanager: Error during background task execution: $e\n$stacktrace");
+       success = false;
     }
-    bool success = true;
+
     return Future.value(success);
   });
 }
@@ -105,48 +166,47 @@ class AppNavigation extends StatefulWidget {
 }
 
 class _AppNavigationState extends State<AppNavigation> {
-  int currentPageIndex = 0;
+  int _selectedIndex = 0;
+
+  static const List<Widget> _widgetOptions = <Widget>[
+    FilesPage(),
+    PhotoSyncPage(),
+    SettingsPage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.only(top: 0, bottom: 0, left: 8, right: 0),
-          child: Image.asset(
-            "assets/images/app-icon.png",
-          ),
-        ),
-        title: const Text(
-          'bewCloud',
-          style: TextStyle(fontWeight: FontWeight.w300),
-        ),
+      body: Center(
+        child: _widgetOptions.elementAt(_selectedIndex),
       ),
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-        indicatorColor: Colors.lightBlue,
-        selectedIndex: currentPageIndex,
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.folder),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
             icon: Icon(Icons.folder_outlined),
+            activeIcon: Icon(Icons.folder),
             label: 'Files',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.settings),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.photo_library_outlined),
+            activeIcon: Icon(Icons.photo_library),
+            label: 'Photos Sync',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
             label: 'Settings',
           ),
         ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
-      body: <Widget>[
-        FilesPage(theme: theme),
-        SettingsPage(theme: theme),
-      ][currentPageIndex],
     );
   }
 }

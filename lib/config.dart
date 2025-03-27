@@ -10,20 +10,28 @@ class CloudAccount {
   String username;
   String password;
   String? autoUploadDestinationDirectory;
+  List<String>? selectedPhotoAlbumIds;
 
   CloudAccount(
       {required this.url,
       required this.username,
       required this.password,
-      this.autoUploadDestinationDirectory});
+      this.autoUploadDestinationDirectory,
+      this.selectedPhotoAlbumIds});
 
   factory CloudAccount.fromJson(Map<String, dynamic> json) {
+    List<String>? albumIds;
+    if (json['selectedPhotoAlbumIds'] != null) {
+      albumIds = List<String>.from(json['selectedPhotoAlbumIds'] as List);
+    }
+
     return CloudAccount(
       url: json['url'] as String,
       username: json['username'] as String,
       password: json['password'] as String,
       autoUploadDestinationDirectory:
           json['autoUploadDestinationDirectory'] as String?,
+      selectedPhotoAlbumIds: albumIds,
     );
   }
 
@@ -32,6 +40,7 @@ class CloudAccount {
         'username': username,
         'password': password,
         'autoUploadDestinationDirectory': autoUploadDestinationDirectory,
+        'selectedPhotoAlbumIds': selectedPhotoAlbumIds,
       };
 }
 
@@ -70,7 +79,7 @@ String stringifyConfig(Config config) {
 
 class ConfigStorage {
   Future<String> get _localPath async {
-    final directory = await getApplicationSupportDirectory();
+    final directory = await getApplicationDocumentsDirectory();
 
     return directory.path;
   }

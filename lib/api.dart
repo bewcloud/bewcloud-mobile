@@ -130,6 +130,53 @@ class Api {
     return [];
   }
 
+  Future<bool> ensureDirectoryExists(String path) async {
+    if (path == '/') return true; // Root always exists
+
+    final parts = path.split('/').where((p) => p.isNotEmpty).toList();
+    String currentCumulativePath = '/';
+
+    for (final part in parts) {
+      String nextPath = '$currentCumulativePath$part/';
+      try {
+        bool exists = false;
+        try {
+          await fetchDirectories(currentCumulativePath); // Check parent first
+          final existingDirs = await fetchDirectories(currentCumulativePath);
+          exists = existingDirs.any((dir) => dir.name == part);
+        } catch (e) {
+           if (currentCumulativePath != '/') {
+              debugPrint("Error checking parent directory $currentCumulativePath: $e");
+              return false;
+           }
+           exists = false;
+        }
+
+
+        if (!exists) {
+          bool created = await createDirectory(currentCumulativePath, part);
+          if (!created) {
+             try {
+                final existingDirs = await fetchDirectories(currentCumulativePath);
+                if (!existingDirs.any((dir) => dir.name == part)) {
+                   debugPrint("Failed to create directory part: $part in $currentCumulativePath and it still doesn't exist.");
+                   return false;
+                }
+             } catch (e) {
+                debugPrint("Error confirming directory creation $nextPath: $e");
+                return false;
+             }
+          }
+        }
+        currentCumulativePath = nextPath;
+      } catch (e) {
+         debugPrint("Error ensuring directory $nextPath exists: $e");
+         return false;
+      }
+    }
+    return true;
+  }
+
   Future<DownloadedFile?> downloadFile(String filePath) async {
     final uri = Uri.parse('${account.url}$filePath');
     final String basicAuth =
