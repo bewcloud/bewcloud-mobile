@@ -113,10 +113,7 @@ void callbackDispatcher() {
             }
           }
 
-          if (!anyAccountSynced) {
-            await notificationService.showSyncCompleteNotification(
-                message: 'No accounts configured for photo sync.');
-          } else {
+          if (anyAccountSynced) {
             await notificationService.showSyncCompleteNotification(
                 message:
                     'Sync complete. Uploaded $totalFilesUploaded file(s). Skipped $totalFilesSkipped existing.');
